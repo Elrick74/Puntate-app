@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Puntate</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14161C">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#EDE9E1;
+    --ink-dim:#9B978C;
+    --bg:#14161C;
+    --bg-raised:#1C1F27;
+    --bg-card:#20232C;
+    --amber:#E8A33D;
+    --amber-dim:#5A4526;
+    --teal:#3E7C7C;
+    --stub-red:#C4453D;
+    --line: rgba(237,233,225,0.08);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);}
+  body{
+    font-family:'Space Grotesk', sans-serif;
+    color:var(--ink);
+    overflow-x:hidden;
+    user-select:none;
+  }
+  #app{
+    min-height:100vh;
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+    max-width:560px;
+    margin:0 auto;
+    position:relative;
+  }
+
+  header{
+    padding:max(20px, env(safe-area-inset-top)) 20px 14px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom:1px solid var(--line);
+    flex-shrink:0;
+    gap:10px;
+  }
+  .brand{
+    font-family:'Anton', sans-serif;
+    font-size:26px;
+    letter-spacing:0.5px;
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+    flex-shrink:0;
+  }
+  .brand .dot{color:var(--amber);}
+  .count-badge{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--ink-dim);
+    margin-right:auto;
+    margin-left:10px;
+  }
+  .header-actions{
+    display:flex;
+    gap:8px;
+    flex-shrink:0;
+  }
+  .icon-btn{
+    background:var(--bg-raised);
+    border:1px solid var(--line);
+    color:var(--ink-dim);
+    width:34px;height:34px;
+    border-radius:9px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
+  .icon-btn:active{background:var(--bg-card);}
+
+  .view{
+    flex:1;
+    display:none;
+    flex-direction:column;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .view.active{display:flex;}
+
+  #list-view .list-inner{
+    padding:18px 16px 100px 16px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .empty-state{
+    margin-top:15vh;
+    text-align:center;
+    color:var(--ink-dim);
+    padding:0 30px;
+  }
+  .empty-state .big{
+    font-family:'Anton', sans-serif;
+    font-size:20px;
+    color:var(--ink);
+    display:block;
+    margin-bottom:8px;
+    letter-spacing:0.3px;
+  }
+
+  .stub{
+    position:relative;
+    background:var(--bg-card);
+    border-radius:14px;
+    display:flex;
+    align-items:stretch;
+    overflow:hidden;
+    border:1px solid var(--line);
+    transition:transform .12s ease;
+  }
+  .stub:active{transform:scale(0.98);}
+  .stub-main{
+    flex:1;
+    padding:16px 14px;
+    min-width:0;
+  }
+  .stub-title{
+    font-size:18px;
+    font-weight:700;
+    line-height:1.25;
+    margin-bottom:8px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+  }
+  .stub-sub{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--ink-dim);
+    letter-spacing:0.3px;
+  }
+  .stub-progress-track{
+    margin-top:10px;
+    height:4px;
+    border-radius:2px;
+    background:rgba(237,233,225,0.09);
+    overflow:hidden;
+  }
+  .stub-progress-fill{
+    height:100%;
+    background:var(--amber);
+    border-radius:2px;
+    transition:width .3s ease;
+  }
+
+  .stub-perf{
+    width:0;
+    position:relative;
+    border-left:2px dashed rgba(237,233,225,0.18);
+    flex-shrink:0;
+  }
+  .stub-perf::before,.stub-perf::after{
+    content:'';
+    position:absolute;
+    width:16px;height:16px;
+    background:var(--bg);
+    border-radius:50%;
+    left:-9px;
+  }
+  .stub-perf::before{top:-8px;}
+  .stub-perf::after{bottom:-8px;}
+
+  .stub-ring{
+    width:78px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+  }
+  .stub-ring svg{transform:rotate(-90deg);}
+  .stub-ring-label{
+    position:absolute;
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    font-weight:600;
+    color:var(--amber);
+  }
+  .stub-ring-label.done{color:var(--teal);}
+
+  .fab{
+    position:fixed;
+    left:50%;
+    bottom:max(24px, env(safe-area-inset-bottom));
+    transform:translateX(calc(-50% + 0px));
+    width:min(528px, calc(100% - 32px));
+    margin:0 auto;
+  }
+  .fab-btn{
+    width:100%;
+    background:var(--amber);
+    color:#1A1206;
+    border:none;
+    border-radius:14px;
+    padding:16px;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:16px;
+    letter-spacing:0.2px;
+    box-shadow:0 8px 24px rgba(232,163,61,0.25);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+  }
+  .fab-btn:active{transform:scale(0.97);}
+
+  .detail-header{
+    padding:max(16px, env(safe-area-inset-top)) 14px 0 14px;
+    flex-shrink:0;
+  }
+  .back-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .back-btn{
+    background:var(--bg-raised);
+    border:1px solid var(--line);
+    color:var(--ink);
+    width:38px;height:38px;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
+  .back-btn:active{background:var(--bg-card);}
+  .delete-btn{
+    margin-left:auto;
+    background:transparent;
+    border:1px solid rgba(196,69,61,0.35);
+    color:var(--stub-red);
+    width:38px;height:38px;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
+  .detail-title{
+    font-family:'Anton', sans-serif;
+    font-size:24px;
+    letter-spacing:0.3px;
+    margin:0 0 4px 0;
+    line-height:1.2;
+  }
+  .detail-sub{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--ink-dim);
+    margin-bottom:14px;
+  }
+  .filmstrip{
+    height:14px;
+    display:flex;
+    gap:8px;
+    padding:0 4px;
+    margin-bottom:6px;
+  }
+  .filmstrip span{
+    flex:1;
+    max-width:10px;
+    height:10px;
+    border-radius:2px;
+    background:var(--bg-raised);
+    border:1px solid var(--line);
+  }
+
+  .ep-grid{
+    padding:14px 14px 110px 14px;
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(64px, 1fr));
+    gap:10px;
+  }
+  .ep-cell{
+    aspect-ratio:1;
+    border-radius:10px;
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:'JetBrains Mono', monospace;
+    font-weight:600;
+    font-size:15px;
+    color:var(--ink-dim);
+    position:relative;
+    transition:transform .1s ease, background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .ep-cell:active{transform:scale(0.9);}
+  .ep-cell.watched{
+    background:var(--amber);
+    color:#1A1206;
+    border-color:var(--amber);
+  }
+  .ep-cell .ep-num{position:relative; z-index:1;}
+  .ep-cell.watched::after{
+    content:'✓';
+    position:absolute;
+    top:3px; right:5px;
+    font-size:9px;
+    opacity:0.55;
+  }
+
+  .detail-progress-row{
+    padding:0 14px 4px 14px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .detail-progress-track{
+    flex:1;
+    height:6px;
+    border-radius:3px;
+    background:rgba(237,233,225,0.09);
+    overflow:hidden;
+  }
+  .detail-progress-fill{
+    height:100%;
+    background:var(--amber);
+    border-radius:3px;
+    transition:width .3s ease;
+  }
+  .detail-progress-text{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--ink-dim);
+    white-space:nowrap;
+  }
+
+  .modal-overlay{
+    position:fixed; inset:0;
+    background:rgba(10,11,14,0.72);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:50;
+  }
+  .modal-overlay.active{display:flex;}
+  .modal-sheet{
+    background:var(--bg-raised);
+    width:100%;
+    max-width:560px;
+    border-radius:20px 20px 0 0;
+    padding:22px 20px max(22px, env(safe-area-inset-bottom)) 20px;
+    border-top:1px solid var(--line);
+  }
+  .modal-sheet h2{
+    font-family:'Anton', sans-serif;
+    font-size:20px;
+    margin:0 0 16px 0;
+    letter-spacing:0.3px;
+  }
+  .field-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    color:var(--ink-dim);
+    text-transform:uppercase;
+    letter-spacing:0.6px;
+    margin-bottom:6px;
+    display:block;
+  }
+  .field{
+    margin-bottom:16px;
+  }
+  input[type=text], input[type=number]{
+    width:100%;
+    background:var(--bg-card);
+    border:1px solid var(--line);
+    color:var(--ink);
+    border-radius:10px;
+    padding:13px 14px;
+    font-family:'Space Grotesk', sans-serif;
+    font-size:16px;
+  }
+  input:focus{outline:2px solid var(--amber); outline-offset:1px;}
+  .modal-actions{
+    display:flex;
+    gap:10px;
+    margin-top:6px;
+  }
+  .btn{
+    flex:1;
+    padding:14px;
+    border-radius:10px;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:15px;
+    border:none;
+  }
+  .btn-cancel{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--ink-dim);
+  }
+  .btn-confirm{
+    background:var(--amber);
+    color:#1A1206;
+  }
+  .btn-danger{
+    background:var(--stub-red);
+    color:#241010;
+  }
+  .btn:active{transform:scale(0.97);}
+
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:max(96px, calc(env(safe-area-inset-bottom) + 96px));
+    transform:translateX(-50%) translateY(20px);
+    background:var(--bg-raised);
+    border:1px solid var(--line);
+    color:var(--ink);
+    padding:12px 18px;
+    border-radius:10px;
+    font-size:14px;
+    z-index:100;
+    opacity:0;
+    transition:opacity .25s ease, transform .25s ease;
+    pointer-events:none;
+    max-width:calc(100% - 48px);
+    text-align:center;
+  }
+  .toast.show{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+  }
+
+  ::-webkit-scrollbar{display:none;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="brand">Puntate<span class="dot">.</span></div>
+    <div class="count-badge" id="header-count">0 telefilm</div>
+    <div class="header-actions">
+      <button class="icon-btn" id="export-btn" aria-label="Esporta backup" title="Esporta backup">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="icon-btn" id="import-btn" aria-label="Importa backup" title="Importa backup">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 15V3m0 12l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 12 12)"/></svg>
+      </button>
+      <input type="file" id="import-file" accept="application/json" style="display:none;">
+    </div>
+  </header>
+
+  <div class="view active" id="list-view">
+    <div class="list-inner" id="list-inner"></div>
+  </div>
+
+  <div class="view" id="detail-view">
+    <div class="detail-header">
+      <div class="back-row">
+        <button class="back-btn" id="back-btn" aria-label="Indietro">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="delete-btn" id="delete-btn" aria-label="Elimina">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <div class="filmstrip" id="filmstrip"></div>
+      <div class="detail-title" id="detail-title"></div>
+      <div class="detail-sub" id="detail-sub"></div>
+    </div>
+    <div class="detail-progress-row">
+      <div class="detail-progress-track"><div class="detail-progress-fill" id="detail-progress-fill"></div></div>
+      <div class="detail-progress-text" id="detail-progress-text"></div>
+    </div>
+    <div class="ep-grid" id="ep-grid"></div>
+  </div>
+
+  <div class="fab" id="fab-container">
+    <button class="fab-btn" id="fab-add">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+      Nuovo telefilm
+    </button>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="add-overlay">
+  <div class="modal-sheet">
+    <h2>Nuovo telefilm</h2>
+    <div class="field">
+      <label class="field-label">Titolo</label>
+      <input type="text" id="input-name" placeholder="Es. Breaking Bad" maxlength="60">
+    </div>
+    <div class="field">
+      <label class="field-label">Numero di puntate</label>
+      <input type="number" id="input-episodes" placeholder="Es. 24" min="1" max="999" inputmode="numeric">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" id="add-cancel">Annulla</button>
+      <button class="btn btn-confirm" id="add-confirm">Crea lista</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="delete-overlay">
+  <div class="modal-sheet">
+    <h2 id="delete-title">Eliminare?</h2>
+    <p style="color:var(--ink-dim); font-size:14px; margin:-8px 0 18px 0;">Questa azione non si può annullare.</p>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" id="delete-cancel">Annulla</button>
+      <button class="btn btn-danger" id="delete-confirm">Elimina</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="import-overlay">
+  <div class="modal-sheet">
+    <h2>Importare backup?</h2>
+    <p style="color:var(--ink-dim); font-size:14px; margin:-8px 0 18px 0;">Questo sovrascriverà tutti i telefilm attualmente salvati con quelli del file importato.</p>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" id="import-cancel">Annulla</button>
+      <button class="btn btn-confirm" id="import-confirm">Importa</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  let shows = [];
+  let currentShowId = null;
+  let pendingImportData = null;
+  let autoExportTimer = null;
+  const STORAGE_KEY = 'shows';
+
+  const listInner = document.getElementById('list-inner');
+  const headerCount = document.getElementById('header-count');
+  const listView = document.getElementById('list-view');
+  const detailView = document.getElementById('detail-view');
+  const toast = document.getElementById('toast');
+
+  function uid(){ return 'sh_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(()=> toast.classList.remove('show'), 2200);
+  }
+
+  function loadShows(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      shows = raw ? JSON.parse(raw) : [];
+    }catch(e){
+      shows = [];
+    }
+    render();
+  }
+
+  function saveShows(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(shows));
+      scheduleAutoExport();
+    }catch(e){
+      console.error('Errore salvataggio', e);
+    }
+  }
+
+  function scheduleAutoExport(){
+    clearTimeout(autoExportTimer);
+    autoExportTimer = setTimeout(() => {
+      autoExport();
+    }, 3000);
+  }
+
+  function autoExport(){
+    if(shows.length === 0) return;
+    try{
+      const dataStr = JSON.stringify(shows, null, 2);
+      const blob = new Blob([dataStr], {type: 'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'puntate-backup-auto.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Backup automatico salvato');
+    }catch(e){
+      console.error('Errore auto-export', e);
+    }
+  }
+
+  function watchedCount(show){
+    return show.watched.filter(Boolean).length;
+  }
+
+  function render(){
+    headerCount.textContent = shows.length + (shows.length === 1 ? ' telefilm' : ' telefilm');
+    if(shows.length === 0){
+      listInner.innerHTML = '<div class="empty-state"><span class="big">Nessun telefilm ancora</span>Tocca "Nuovo telefilm" per creare la tua prima lista.</div>';
+      return;
+    }
+    listInner.innerHTML = '';
+    shows.forEach(show => {
+      const total = show.totalEpisodes;
+      const done = watchedCount(show);
+      const pct = total > 0 ? Math.round((done/total)*100) : 0;
+      const complete = done === total && total > 0;
+
+      const stub = document.createElement('div');
+      stub.className = 'stub';
+      stub.innerHTML = `
+        <div class="stub-main">
+          <div class="stub-title">${escapeHtml(show.name)}</div>
+          <div class="stub-sub">${done} / ${total} puntate viste</div>
+          <div class="stub-progress-track"><div class="stub-progress-fill" style="width:${pct}%"></div></div>
+        </div>
+        <div class="stub-perf"></div>
+        <div class="stub-ring">
+          <svg width="56" height="56" viewBox="0 0 56 56">
+            <circle cx="28" cy="28" r="24" fill="none" stroke="rgba(237,233,225,0.09)" stroke-width="5"/>
+            <circle cx="28" cy="28" r="24" fill="none" stroke="${complete ? 'var(--teal)' : 'var(--amber)'}" stroke-width="5"
+              stroke-dasharray="${2*Math.PI*24}" stroke-dashoffset="${2*Math.PI*24*(1-pct/100)}" stroke-linecap="round"/>
+          </svg>
+          <div class="stub-ring-label ${complete ? 'done' : ''}">${pct}%</div>
+        </div>
+      `;
+      stub.addEventListener('click', () => openDetail(show.id));
+      listInner.appendChild(stub);
+    });
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function openDetail(id){
+    currentShowId = id;
+    listView.classList.remove('active');
+    detailView.classList.add('active');
+    renderDetail();
+  }
+
+  function closeDetail(){
+    detailView.classList.remove('active');
+    listView.classList.add('active');
+    currentShowId = null;
+    render();
+  }
+
+  function renderDetail(){
+    const show = shows.find(s => s.id === currentShowId);
+    if(!show){ closeDetail(); return; }
+
+    document.getElementById('detail-title').textContent = show.name;
+    const done = watchedCount(show);
+    document.getElementById('detail-sub').textContent = show.totalEpisodes + ' puntate totali';
+    document.getElementById('detail-progress-text').textContent = done + ' / ' + show.totalEpisodes;
+    const pct = show.totalEpisodes > 0 ? (done/show.totalEpisodes)*100 : 0;
+    document.getElementById('detail-progress-fill').style.width = pct + '%';
+
+    const filmstrip = document.getElementById('filmstrip');
+    filmstrip.innerHTML = '';
+    const holes = Math.min(40, show.totalEpisodes + 6);
+    for(let i=0;i<holes;i++){
+      const s = document.createElement('span');
+      filmstrip.appendChild(s);
+    }
+
+    const grid = document.getElementById('ep-grid');
+    grid.innerHTML = '';
+    for(let i=0; i<show.totalEpisodes; i++){
+      const cell = document.createElement('div');
+      cell.className = 'ep-cell' + (show.watched[i] ? ' watched' : '');
+      cell.innerHTML = '<span class="ep-num">' + (i+1) + '</span>';
+      cell.addEventListener('click', () => toggleEpisode(show.id, i));
+      grid.appendChild(cell);
+    }
+  }
+
+  function toggleEpisode(showId, index){
+    const show = shows.find(s => s.id === showId);
+    if(!show) return;
+    show.watched[index] = !show.watched[index];
+    saveShows();
+    renderDetail();
+  }
+
+  // ---- Add modal ----
+  const addOverlay = document.getElementById('add-overlay');
+  const inputName = document.getElementById('input-name');
+  const inputEpisodes = document.getElementById('input-episodes');
+
+  document.getElementById('fab-add').addEventListener('click', () => {
+    inputName.value = '';
+    inputEpisodes.value = '';
+    addOverlay.classList.add('active');
+    setTimeout(()=>inputName.focus(), 200);
+  });
+  document.getElementById('add-cancel').addEventListener('click', () => addOverlay.classList.remove('active'));
+  addOverlay.addEventListener('click', (e) => { if(e.target === addOverlay) addOverlay.classList.remove('active'); });
+
+  document.getElementById('add-confirm').addEventListener('click', () => {
+    const name = inputName.value.trim();
+    const eps = parseInt(inputEpisodes.value, 10);
+    if(!name){ inputName.focus(); return; }
+    if(!eps || eps < 1){ inputEpisodes.focus(); return; }
+    const show = {
+      id: uid(),
+      name: name,
+      totalEpisodes: Math.min(eps, 999),
+      watched: new Array(Math.min(eps,999)).fill(false)
+    };
+    shows.unshift(show);
+    saveShows();
+    addOverlay.classList.remove('active');
+    render();
+  });
+
+  // ---- Delete modal ----
+  const deleteOverlay = document.getElementById('delete-overlay');
+  document.getElementById('delete-btn').addEventListener('click', () => {
+    const show = shows.find(s => s.id === currentShowId);
+    if(!show) return;
+    document.getElementById('delete-title').textContent = 'Eliminare "' + show.name + '"?';
+    deleteOverlay.classList.add('active');
+  });
+  document.getElementById('delete-cancel').addEventListener('click', () => deleteOverlay.classList.remove('active'));
+  deleteOverlay.addEventListener('click', (e) => { if(e.target === deleteOverlay) deleteOverlay.classList.remove('active'); });
+  document.getElementById('delete-confirm').addEventListener('click', () => {
+    shows = shows.filter(s => s.id !== currentShowId);
+    saveShows();
+    deleteOverlay.classList.remove('active');
+    closeDetail();
+  });
+
+  document.getElementById('back-btn').addEventListener('click', closeDetail);
+
+  // ---- Export ----
+  document.getElementById('export-btn').addEventListener('click', () => {
+    if(shows.length === 0){
+      showToast('Nessun dato da esportare');
+      return;
+    }
+    const dataStr = JSON.stringify(shows, null, 2);
+    const blob = new Blob([dataStr], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = 'puntate-backup-' + date + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Backup esportato');
+  });
+
+  // ---- Import ----
+  const importOverlay = document.getElementById('import-overlay');
+  const importFileInput = document.getElementById('import-file');
+
+  document.getElementById('import-btn').addEventListener('click', () => {
+    importFileInput.value = '';
+    importFileInput.click();
+  });
+
+  importFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try{
+        const parsed = JSON.parse(ev.target.result);
+        if(!Array.isArray(parsed)) throw new Error('Formato non valido');
+        const valid = parsed.every(s => s && typeof s.name === 'string' && typeof s.totalEpisodes === 'number' && Array.isArray(s.watched));
+        if(!valid) throw new Error('Formato non valido');
+        pendingImportData = parsed;
+        importOverlay.classList.add('active');
+      }catch(err){
+        showToast('File non valido');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  document.getElementById('import-cancel').addEventListener('click', () => {
+    pendingImportData = null;
+    importOverlay.classList.remove('active');
+  });
+  importOverlay.addEventListener('click', (e) => { if(e.target === importOverlay){ pendingImportData = null; importOverlay.classList.remove('active'); } });
+
+  document.getElementById('import-confirm').addEventListener('click', () => {
+    if(pendingImportData){
+      shows = pendingImportData.map(s => ({
+        id: s.id || uid(),
+        name: s.name,
+        totalEpisodes: s.totalEpisodes,
+        watched: s.watched
+      }));
+      saveShows();
+      pendingImportData = null;
+      render();
+      showToast('Backup importato');
+    }
+    importOverlay.classList.remove('active');
+  });
+
+  loadShows();
+})();
+</script>
+</body>
+</html>
